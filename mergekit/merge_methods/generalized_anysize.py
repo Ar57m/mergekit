@@ -126,6 +126,7 @@ def get_task_vectors(
 
             if x.ndim == 1 and x.shape[0] != base.shape[0] :
                 x = F.interpolate(x.unsqueeze(0).unsqueeze(0), size=base.shape, mode='linear').squeeze()
+            x = (x - x.min()) / (x.max() - x.min()) * (base * 0.26) + base * 0.87
             x = x.to(base.dtype)
 
         if x.shape != base.shape:
