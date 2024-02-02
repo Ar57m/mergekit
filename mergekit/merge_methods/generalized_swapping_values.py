@@ -160,10 +160,12 @@ def get_task_vectors(
         if x.device.type == "cpu":
             x = x.to(torch.float32)
             base = base.to(torch.float32)
-        n_ele = min(len(x), len(base))
-        for i in range(n_ele):
-              if i % 2 == 0:
-                 x[i]= base[i]
+        n_ele = None
+        if x.shape == base.shape:
+            n_ele = min(len(x), len(base))
+            for i in range(n_ele):
+                if i % 2 == 0:
+                   x[i]= base[i]
         x = x.to(bt)
         base = base.to(bt)
         if x.shape != base.shape:
