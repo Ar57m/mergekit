@@ -161,11 +161,17 @@ def get_task_vectors(
             x = x.to(torch.float32)
             base = base.to(torch.float32)
         n_ele = None
-        if x.shape == base.shape:
-            n_ele = min(len(x), len(base))
-            for i in range(n_ele):
-                if i % 2 == 0:
-                   x[i]= base[i]
+        if x.shape == base.shape and x.dim() ==1:
+           n_ele = base.numel()
+           for i in range(n_ele):
+               if i % 2 == 0:
+                  x[i]= base[i]
+        if x.shape == base.shape and x.dim()==2:
+           n_ele = base.numel()
+           for i in range(n_ele):
+               row, col = divmod(i, x.shape[1])
+               if (row % 2 == 1 and col % 2 == 0) or (row % 2 == 0 and col % 2 == 1):
+                  x[row, col] = base[row, col]
         x = x.to(bt)
         base = base.to(bt)
         if x.shape != base.shape:
