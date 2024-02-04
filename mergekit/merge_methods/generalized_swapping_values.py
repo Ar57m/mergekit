@@ -141,11 +141,16 @@ class GTATask(Task[torch.Tensor]):
         return (base + mixed_delta).to(base.dtype)
 
 def swap_values(shape, n, base, x):
-    rows, cols = shape
-    rows_range = torch.arange(rows).view(-1, 1)
-    cols_range = torch.arange(cols).view(1, -1)
-    mask = ((rows_range + cols_range) % n == 0).bool()
-    x = torch.where(mask, base, x)
+    if x.dim() == 2:
+       rows, cols = shape
+       rows_range = torch.arange(rows).view(-1, 1)
+       cols_range = torch.arange(cols).view(1, -1)
+       mask = ((rows_range + cols_range) % n == 0).bool()
+       x = torch.where(mask, base, x)
+    else:
+       rows_range = torch.arange(shape[0])
+       mask = ((rows_range) % n == 0).bool()
+       x = torch.where(mask, base, x)
     return x
 
 def get_task_vectors(
