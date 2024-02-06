@@ -21,6 +21,7 @@ import torch
 from pydantic import BaseModel
 from typing_extensions import Literal
 
+from mergekit.architecture import WeightInfo
 from mergekit.common import ImmutableMap, ModelReference
 from mergekit.graph import Task
 from mergekit.io.tasks import GatherTensors
@@ -50,11 +51,12 @@ class GeneralizedSwappingValues(MergeMethod, BaseModel, frozen=True):
         return [
             ConfigParameterDef(name="weight", required=True),
             ConfigParameterDef(name="density", required=False, default_value=1.0),
+            ConfigParameterDef(name="diagonal_offset", required=True),
         ]
 
     def make_task(
         self,
-        output_tensor_name: str,
+        output_weight: WeightInfo,
         tensors: GatherTensors,
         base_model: Optional[ModelReference],
         parameters: ImmutableMap[str, Any],
@@ -67,7 +69,7 @@ class GeneralizedSwappingValues(MergeMethod, BaseModel, frozen=True):
             tensor_parameters=tensor_parameters,
             int8_mask=parameters["int8_mask"],
             normalize=parameters["normalize"],
-            out_tensor_name=output_tensor_name,
+            out_tensor_name=output_weight.name,
         )
 
 
@@ -172,9 +174,12 @@ def get_task_vectors(
         if x.device.type == "cpu":
             x = x.to(torch.float32)
             base = base.to(torch.float32)
-        
+        diagonal_offset = None
+        parameterg = dict(tensor_parameters[model].items())
+        diagonal_offset = parameterg.get('diagonal_offset')
+        assert (diagonal_offset is not None) and (diagonal_offset % 1 == 0), "The diagonal_offset parameter can't be empty or None and must be an integer."
         if x.shape == base.shape:
-            x = swap_values(x.shape, 2, base, x)
+            x = swap_values(x.shape, diagonal_offset, base, x)
         x = x.to(bt)
         base = base.to(bt)
         if x.shape != base.shape:
