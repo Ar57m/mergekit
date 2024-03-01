@@ -151,11 +151,11 @@ def swap_values(shape, n, base, x):
        rows_range = torch.arange(rows).view(-1, 1)
        cols_range = torch.arange(cols).view(1, -1)
        mask = ((rows_range + cols_range) % n == 0).bool()
-       x = torch.where(mask, base, x)
+       x = torch.where(mask, x, base)
     else:
        rows_range = torch.arange(shape[0])
        mask = ((rows_range) % n == 0).bool()
-       x = torch.where(mask, base, x)
+       x = torch.where(mask, x, base)
     return x
 
 def rand_mask(base, x, percent, seed=None):
