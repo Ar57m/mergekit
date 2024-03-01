@@ -53,6 +53,8 @@ class GeneralizedSwappingValues(MergeMethod, BaseModel, frozen=True):
             ConfigParameterDef(name="density", required=False, default_value=1.0),
             ConfigParameterDef(name="diagonal_offset", required=True),
             ConfigParameterDef(name="invert_offset", required=False, default_value= False),
+            ConfigParameterDef(name="random_mask", required=False, default_value= 0.0),
+            ConfigParameterDef(name="random_mask_seed", required=False, default_value= None),
         ]
 
     def make_task(
@@ -156,6 +158,20 @@ def swap_values(shape, n, base, x):
        x = torch.where(mask, base, x)
     return x
 
+def rand_mask(base, x, percent, seed=None):
+
+    oldseed = torch.seed()
+
+    if seed is not None:
+        torch.manual_seed(seed)
+
+    random = torch.rand(base.shape)
+    mask = random <= percent
+    del random
+    torch.manual_seed(oldseed)
+    x = torch.where(mask, base, x) 
+    return x
+
 def get_task_vectors(
     parameter_name: str,
     base_model: ModelReference,
@@ -179,14 +195,31 @@ def get_task_vectors(
         diagonal_offset = None
         parameterg = dict(tensor_parameters[model].items())
         diagonal_offset = parameterg.get('diagonal_offset')
+        random_mask = parameterg.get('random_mask')
+        random_mask_seed = parameterg.get('random_mask_seed')
+        random_mask_seed = int(random_mask_seed) if random_mask_seed is not None else random_mask_seed
+
 
         assert (diagonal_offset is not None) and (diagonal_offset % 1 == 0), "The diagonal_offset parameter can't be empty or None and must be an integer."
 
-        if x.shape == base.shape:
-            if parameterg.get('invert_offset') == False:
-                x = swap_values(x.shape, diagonal_offset, base, x)
-            else:
-                x = swap_values(x.shape, diagonal_offset, x, base)
+        
+        if random_mask != 0.0:
+           if x.shape != base.shape:
+               if "lm_head" in parameter_name or "embed_tokens" in parameter_name:
+                   x = x[: base.shape[0], : base.shape[1]] 
+                   logging.warning(f"Using submatrix of {model}:{parameter_name} on random_mask.")
+           assert (random_mask is not None) and (random_mask < 1.0) and (random_mask > 0.0) , "The random_mask parameter can't be empty, 0, 1, or None, it must be a number between 0 and 1."
+           assert random_mask_seed is None or (isinstance(random_mask_seed, int) and random_mask_seed % 1 == 0), "The random_mask_seed parameter must be None or an integer, None is a random seed."
+
+           x = rand_mask(base, x, random_mask, random_mask_seed)
+
+        else:
+
+           if x.shape == base.shape:
+               if parameterg.get('invert_offset') == False:
+                   x = swap_values(x.shape, diagonal_offset, base, x)
+               else:
+                   x = swap_values(x.shape, diagonal_offset, x, base)
 
         x = x.to(bt)
         base = base.to(bt)
