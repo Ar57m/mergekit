@@ -169,7 +169,7 @@ def rand_mask(base, x, percent, seed=None):
     mask = random <= percent
     del random
     torch.manual_seed(oldseed)
-    x = torch.where(mask, base, x) 
+    x = torch.where(mask, x, base) 
     return x
 
 def get_task_vectors(
