@@ -200,7 +200,7 @@ def get_task_vectors(
         random_mask_seed = int(random_mask_seed) if random_mask_seed is not None else random_mask_seed
 
 
-        assert (diagonal_offset is not None) and (diagonal_offset % 1 == 0), "The diagonal_offset parameter can't be empty or None and must be an integer."
+        assert (diagonal_offset is not None) and (diagonal_offset % 1 == 0) and (diagonal_offset >= 2), "The diagonal_offset must be an integer greater than or equal to 2."
 
         
         if random_mask != 0.0:
