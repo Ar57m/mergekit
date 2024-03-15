@@ -168,7 +168,7 @@ def swapping(base, x, parameters, parameter_name):
         del random
         torch.manual_seed(oldseed)
         x = torch.where(mask, x, base) 
-       return x
+        return x
     
     bt = base.dtype
     if x.device.type == "cpu":
