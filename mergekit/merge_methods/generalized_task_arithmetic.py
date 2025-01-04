@@ -289,7 +289,23 @@ def swapping_method(base, x, parameters):
 
     del base
     return x.to(bt)
-
+    
+def interleave(array1):
+    bt = array1.dtype
+    array_sh = array1.shape
+    array = array1.flatten()
+    
+    if array.device.type == "cpu":
+        array = array.to(torch.float32)
+    
+    even = torch.zeros_like(array, device= array.device)
+    odd = torch.zeros_like(array, device= array.device)
+    even[::2] = array[::2]
+    odd[1::2] = array[1::2]
+    del array
+    even = torch.roll(even, 1)
+    odd = torch.roll(odd, -1)
+    return (even + odd).view(array_sh).to(bt)
 
 def get_task_vectors(
     weight_info: WeightInfo,
@@ -304,8 +320,8 @@ def get_task_vectors(
 
     res = []
     for model in keys:
-        if model == base_model:
-            continue
+        #if model == base_model:
+         #   continue
 
         x = tensors[model].to(base.dtype)
 
@@ -320,7 +336,7 @@ def get_task_vectors(
                 continue
 
         if swapping:
-            x = swapping_method(base, x, dict(tensor_parameters[model].items()))
+            x = interleave(x) #swapping_method(base, x, dict(tensor_parameters[model].items()))
         
 
         delta = x - base
